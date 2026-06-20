@@ -1,6 +1,7 @@
 package einvoice
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"time"
@@ -14,7 +15,7 @@ const defaultBaseURL = "https://gateway.useyona.com"
 type Config struct {
 	// APIKey authenticates every request. Must start with sk_live_ or sk_test_.
 	APIKey string
-	// OrganizationID scopes org-scoped services (webhooks, API keys, users).
+	// OrganizationID scopes org-scoped services (API keys, webhooks, users).
 	OrganizationID string
 	// BaseURL overrides the API gateway base URL. Defaults to defaultBaseURL.
 	BaseURL string
@@ -41,6 +42,10 @@ type Client struct {
 	Buyers *BuyerService
 	// Billing manages credits, subscriptions, payments, and analytics.
 	Billing *BillingService
+	// Organizations manages organizations (and child orgs for B2B2B).
+	Organizations *OrganizationService
+	// APIKeys manages API keys for the configured organization (org-scoped).
+	APIKeys *ApiKeyService
 
 	http   *httpClient
 	config Config
@@ -102,11 +107,21 @@ func New(cfg Config) (*Client, error) {
 	c.Sellers = &SellerService{http: h}
 	c.Buyers = &BuyerService{http: h}
 	c.Billing = &BillingService{http: h}
+	c.Organizations = &OrganizationService{http: h}
+	c.APIKeys = &ApiKeyService{http: h, orgID: c.resolveOrgID}
 	return c, nil
 }
 
 // OrganizationID returns the organization ID this client is scoped to, if any.
 func (c *Client) OrganizationID() string { return c.orgID }
+
+// resolveOrgID returns the configured organization ID or a *ConfigError.
+func (c *Client) resolveOrgID() (string, error) {
+	if c.orgID == "" {
+		return "", &ConfigError{Message: "organizationId is required for this operation; set Config.OrganizationID or use ForOrganization"}
+	}
+	return c.orgID, nil
+}
 
 // ForOrganization returns a new Client scoped to a different organization,
 // reusing the same API key and transport configuration.
@@ -125,4 +140,27 @@ func (c *Client) ForAPIKey(apiKey, organizationID string) (*Client, error) {
 	cfg.APIKey = apiKey
 	cfg.OrganizationID = organizationID
 	return New(cfg)
+}
+
+// CreateOrganizationWithAPIKeyResult is returned by CreateOrganizationWithAPIKey.
+type CreateOrganizationWithAPIKeyResult struct {
+	Organization *Organization
+	APIKey       *ApiKeyWithKey
+}
+
+// CreateOrganizationWithAPIKey creates a child organization and its first API
+// key in a single call (B2B2B convenience). If the API key creation fails, the
+// organization still exists; retry APIKeys.Create on a client scoped to the new
+// org via ForOrganization(org.ID).
+func (c *Client) CreateOrganizationWithAPIKey(ctx context.Context, orgParams *CreateOrganizationParams, keyParams *CreateApiKeyParams) (*CreateOrganizationWithAPIKeyResult, error) {
+	org, err := c.Organizations.Create(ctx, orgParams)
+	if err != nil {
+		return nil, err
+	}
+	scoped := c.ForOrganization(org.ID)
+	key, err := scoped.APIKeys.Create(ctx, keyParams)
+	if err != nil {
+		return &CreateOrganizationWithAPIKeyResult{Organization: org}, err
+	}
+	return &CreateOrganizationWithAPIKeyResult{Organization: org, APIKey: key}, nil
 }
