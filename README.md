@@ -10,10 +10,10 @@ targets the same API gateway. **Zero runtime dependencies** — standard library
 
 > Status: core of the SDK (client, transport, errors, webhooks) plus the
 > invoice / seller / buyer / billing services, the organization + API-key
-> services (B2B2B: child orgs and scoped key provisioning), the org-scoped
-> user + role (RBAC) services, and the org-scoped webhook-endpoint management
-> service. The remaining service (invitations) is tracked for follow-up to
-> reach full parity with the JS SDK's 117 methods.
+> services (B2B2B: child orgs and scoped key provisioning), and the org-scoped
+> webhook-endpoint management service. The remaining services (users, roles,
+> invitations) are tracked for follow-up to reach full parity with the JS SDK's
+> 117 methods.
 
 ## Install
 
@@ -125,7 +125,7 @@ Types: `*APIError`, `*RateLimitError` (unwraps to `*APIError`), `*TimeoutError`,
 
 ## Webhooks
 
-Verify webhook signatures (HMAC-SHA256, timing-safe, with replay protection):
+Verify incoming webhook signatures (HMAC-SHA256, timing-safe, with replay protection):
 
 ```go
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -143,6 +143,18 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
+Manage webhook endpoints (register, list, test, inspect deliveries) via `client.Webhooks`
+(requires an organization ID):
+
+```go
+org := client.ForOrganization("org_123")
+ep, _ := org.Webhooks.Create(ctx, &einvoice.CreateWebhookEndpointParams{
+	URL:    "https://example.com/hooks/einvoice",
+	Events: []string{"invoice.approved", "invoice.rejected"},
+})
+fmt.Println(ep.ID, ep.Secret) // Secret is shown once
+```
+
 ## API reference (this release)
 
 | Service | Methods |
@@ -153,8 +165,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 | `client.Billing` | `GetAccount`, `CheckBalance`, `GetAccountStats`, `GetPlans`, `GetPlan`, `GetPackages`, `GetCreditCosts`, `GetActiveSubscription`, `GetSubscriptionHistory`, `GetPayments`, `GetTransactions`, `GetTransaction`, `GetUsageAnalytics`, `PurchaseCredits`, `TransferCredits` |
 | `client.Organizations` | `Create`, `Get`, `List`, `Update`, `ListChildren` |
 | `client.APIKeys` (org-scoped) | `Create`, `List`, `Get`, `Revoke`, `Rotate` |
-| `client.Users` (org-scoped) | `List`, `Get`, `Update`, `UpdateRole`, `UpdateStatus`, `Remove` |
-| `client.Roles` (org-scoped) | `List`, `Get`, `Create`, `Update`, `Delete`, `AvailablePermissions` |
 | `client.Webhooks` (org-scoped) | `Create`, `List`, `Get`, `Update`, `Delete`, `Test`, `ListDeliveries`, `RetryDelivery` |
 | `Client` (B2B2B) | `CreateOrganizationWithAPIKey` |
 | package-level | `VerifyWebhook` (verify an incoming webhook signature) |

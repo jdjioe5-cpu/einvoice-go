@@ -15,7 +15,7 @@ const defaultBaseURL = "https://gateway.useyona.com"
 type Config struct {
 	// APIKey authenticates every request. Must start with sk_live_ or sk_test_.
 	APIKey string
-	// OrganizationID scopes org-scoped services (API keys, webhooks, users).
+	// OrganizationID scopes org-scoped services (API keys, webhooks).
 	OrganizationID string
 	// BaseURL overrides the API gateway base URL. Defaults to defaultBaseURL.
 	BaseURL string
@@ -46,10 +46,6 @@ type Client struct {
 	Organizations *OrganizationService
 	// APIKeys manages API keys for the configured organization (org-scoped).
 	APIKeys *ApiKeyService
-	// Users manages members of the configured organization (org-scoped).
-	Users *UserService
-	// Roles manages custom RBAC roles for the configured organization (org-scoped).
-	Roles *RoleService
 	// Webhooks manages webhook endpoints for the configured organization (org-scoped).
 	Webhooks *WebhookService
 
@@ -115,8 +111,6 @@ func New(cfg Config) (*Client, error) {
 	c.Billing = &BillingService{http: h}
 	c.Organizations = &OrganizationService{http: h}
 	c.APIKeys = &ApiKeyService{http: h, orgID: c.resolveOrgID}
-	c.Users = &UserService{http: h, orgID: c.resolveOrgID}
-	c.Roles = &RoleService{http: h, orgID: c.resolveOrgID}
 	c.Webhooks = &WebhookService{http: h, orgID: c.resolveOrgID}
 	return c, nil
 }
