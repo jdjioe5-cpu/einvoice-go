@@ -190,3 +190,6 @@ func (s *WebhookService) RetryDelivery(ctx context.Context, endpointID, delivery
 	}
 	return &out, nil
 }
+
+// package doc: webhook_endpoints.go exports via Client.Webhooks (see client.go).
+var _ = (*WebhookService)(nil)
