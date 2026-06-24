@@ -154,18 +154,26 @@ func (s *WebhookService) Test(ctx context.Context, id string, opts ...RequestOpt
 }
 
 // ListDeliveries returns recent event delivery attempts for the given webhook
-// endpoint, newest first.
-func (s *WebhookService) ListDeliveries(ctx context.Context, endpointID string, opts ...RequestOption) ([]WebhookDelivery, error) {
+// endpoint, newest first. Pass a non-nil params to enable pagination; the
+// returned *Pagination carries the next-page cursor when the server supplies
+// one (nil if the response is unpaginated or the platform did not echo back
+// pagination metadata).
+func (s *WebhookService) ListDeliveries(ctx context.Context, endpointID string, params *ListParams, opts ...RequestOption) ([]WebhookDelivery, *Pagination, error) {
 	base, err := s.base()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	var out []WebhookDelivery
-	_, err = s.http.do(ctx, internalRequest{method: http.MethodGet, path: base + "/" + url.PathEscape(endpointID) + "/deliveries", opts: applyOptions(opts)}, &out)
+	meta, err := s.http.do(ctx, internalRequest{
+		method: http.MethodGet,
+		path:   base + "/" + url.PathEscape(endpointID) + "/deliveries",
+		query:  params.query(),
+		opts:   applyOptions(opts),
+	}, &out)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return out, nil
+	return out, meta.Pagination, nil
 }
 
 // RetryDelivery requeues a previously failed delivery for a second attempt.

@@ -135,21 +135,50 @@ func TestWebhooksTest(t *testing.T) {
 }
 
 func TestWebhooksListDeliveries(t *testing.T) {
-	var gotPath string
+	var gotPath, gotQuery string
 	c, srv := newOrgTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		gotPath = r.URL.Path
-		_, _ = w.Write([]byte(`{"meta":{"success":true},"data":[{"id":"d_1","status":"succeeded","attempts":1},{"id":"d_2","status":"failed","attempts":3,"lastError":"timeout"}]}`))
+		gotQuery = r.URL.RawQuery
+		_, _ = w.Write([]byte(`{"meta":{"success":true,"pagination":{"page":2,"pageSize":25,"hasNext":true,"total":7}},"data":[{"id":"d_1","status":"succeeded","attempts":1},{"id":"d_2","status":"failed","attempts":3,"lastError":"timeout"}]}`))
 	})
 	defer srv.Close()
-	deliveries, err := c.Webhooks.ListDeliveries(context.Background(), "wh_1")
+	deliveries, page, err := c.Webhooks.ListDeliveries(context.Background(), "wh_1", &ListParams{Page: 2, Limit: 25})
 	if err != nil {
 		t.Fatalf("ListDeliveries: %v", err)
 	}
 	if gotPath != "/a/v1/organizations/org_77/webhooks/wh_1/deliveries" {
 		t.Errorf("path = %q", gotPath)
 	}
+	if gotQuery != "limit=25&page=2" {
+		t.Errorf("query = %q, want limit=25&page=2", gotQuery)
+	}
 	if len(deliveries) != 2 || deliveries[1].LastError != "timeout" {
 		t.Errorf("deliveries = %+v", deliveries)
+	}
+	if page == nil || !page.HasNext || page.Total != 7 {
+		t.Errorf("page = %+v, want HasNext=true Total=7", page)
+	}
+}
+
+// TestWebhooksListDeliveriesNilParams ensures the helper still works when the
+// caller does not pass a ListParams (e.g. un-paginated test fixtures).
+func TestWebhooksListDeliveriesNilParams(t *testing.T) {
+	c, srv := newOrgTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.RawQuery; got != "" {
+			t.Errorf("query = %q, want empty when params is nil", got)
+		}
+		_, _ = w.Write([]byte(`{"meta":{"success":true},"data":[]}`))
+	})
+	defer srv.Close()
+	deliveries, page, err := c.Webhooks.ListDeliveries(context.Background(), "wh_1", nil)
+	if err != nil {
+		t.Fatalf("ListDeliveries(nil): %v", err)
+	}
+	if len(deliveries) != 0 {
+		t.Errorf("deliveries = %+v, want empty", deliveries)
+	}
+	if page != nil {
+		t.Errorf("page = %+v, want nil when no pagination metadata", page)
 	}
 }
 
