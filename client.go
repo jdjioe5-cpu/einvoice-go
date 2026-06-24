@@ -46,6 +46,8 @@ type Client struct {
 	Organizations *OrganizationService
 	// APIKeys manages API keys for the configured organization (org-scoped).
 	APIKeys *ApiKeyService
+	// Webhooks manages webhook endpoints for the configured organization (org-scoped).
+	Webhooks *WebhookService
 
 	http   *httpClient
 	config Config
@@ -109,6 +111,7 @@ func New(cfg Config) (*Client, error) {
 	c.Billing = &BillingService{http: h}
 	c.Organizations = &OrganizationService{http: h}
 	c.APIKeys = &ApiKeyService{http: h, orgID: c.resolveOrgID}
+	c.Webhooks = &WebhookService{http: h, orgID: c.resolveOrgID}
 	return c, nil
 }
 
