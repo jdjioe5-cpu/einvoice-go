@@ -46,6 +46,11 @@ type Client struct {
 	Organizations *OrganizationService
 	// APIKeys manages API keys for the configured organization (org-scoped).
 	APIKeys *ApiKeyService
+	// Users manages members of the configured organization (org-scoped).
+	Users *UserService
+	// Roles manages custom RBAC roles and permissions for the configured
+	// organization (org-scoped).
+	Roles *RoleService
 
 	http   *httpClient
 	config Config
@@ -109,6 +114,8 @@ func New(cfg Config) (*Client, error) {
 	c.Billing = &BillingService{http: h}
 	c.Organizations = &OrganizationService{http: h}
 	c.APIKeys = &ApiKeyService{http: h, orgID: c.resolveOrgID}
+	c.Users = &UserService{http: h, orgID: c.resolveOrgID}
+	c.Roles = &RoleService{http: h, orgID: c.resolveOrgID}
 	return c, nil
 }
 

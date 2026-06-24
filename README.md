@@ -9,9 +9,10 @@ It is an idiomatic Go port of the TypeScript SDK
 targets the same API gateway. **Zero runtime dependencies** — standard library only.
 
 > Status: core of the SDK (client, transport, errors, webhooks) plus the
-> invoice / seller / buyer / billing services and the organization + API-key
-> services (B2B2B: child orgs and scoped key provisioning). The remaining
-> org-scoped services (webhooks management, users, invitations, roles) are
+> invoice / seller / buyer / billing services, the organization + API-key
+> services (B2B2B: child orgs and scoped key provisioning), the org-scoped
+> webhook-endpoint management service, and the org-scoped user + role
+> (RBAC) services. The remaining org-scoped services (invitations) are
 > tracked for follow-up to reach full parity with the JS SDK's 117 methods.
 
 ## Install
@@ -152,6 +153,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 | `client.Billing` | `GetAccount`, `CheckBalance`, `GetAccountStats`, `GetPlans`, `GetPlan`, `GetPackages`, `GetCreditCosts`, `GetActiveSubscription`, `GetSubscriptionHistory`, `GetPayments`, `GetTransactions`, `GetTransaction`, `GetUsageAnalytics`, `PurchaseCredits`, `TransferCredits` |
 | `client.Organizations` | `Create`, `Get`, `List`, `Update`, `ListChildren` |
 | `client.APIKeys` (org-scoped) | `Create`, `List`, `Get`, `Revoke`, `Rotate` |
+| `client.Users` (org-scoped) | `List`, `Get`, `GetMe`, `Update`, `UpdateRole`, `UpdateStatus`, `GetPermissions`, `AddPermissions`, `RemovePermissions`, `SendPhoneVerification`, `VerifyPhone`, `Remove` |
+| `client.Roles` (org-scoped) | `List`, `Get`, `Create`, `Update`, `Delete`, `AvailablePermissions` |
 | `Client` (B2B2B) | `CreateOrganizationWithAPIKey` |
 | package-level | `VerifyWebhook` |
 

@@ -34,6 +34,9 @@ func TestNewDefaults(t *testing.T) {
 	if c.Invoices == nil || c.Sellers == nil || c.Buyers == nil || c.Billing == nil {
 		t.Error("expected all services to be initialized")
 	}
+	if c.Users == nil || c.Roles == nil {
+		t.Error("expected Users and Roles services to be initialized")
+	}
 }
 
 func TestNewDisablesRetries(t *testing.T) {
