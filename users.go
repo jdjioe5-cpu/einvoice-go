@@ -380,3 +380,6 @@ func (s *UserService) Remove(ctx context.Context, id string, opts ...RequestOpti
 	}, nil)
 	return err
 }
+
+// package doc for users: re-exported by client.go via Client.Users. No new exported surface here.
+var _ = (*UserService)(nil)
